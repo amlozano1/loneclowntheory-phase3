@@ -1,0 +1,35 @@
+DELIMITER $$
+
+CREATE PROCEDURE `LCTPhaseThree`.`randomFill` ()
+BEGIN
+    DECLARE RanProductID VARCHAR(4);
+    DECLARE RanPrice INT;
+    DECLARE RanDeptID INT;
+    DECLARE RanWeight INT;
+    DECLARE RanProductYear VARCHAR(4);
+    DECLARE RanExpireYear VARCHAR(4);
+    DECLARE Temp VARCHAR(4);
+    DECLARE i INT DEFAULT 0;
+    
+    WHILE i < 50 DO
+    -- The funtion FLOOR(i + RAND() * (j - 1)) returns a random int r in the range i <= r < j
+        SET RanProductID = FLOOR(0 + RAND() * 9999);
+        
+        SET Temp = CASE WHEN LENGTH(RanProductID) = 1 THEN ('000' + RanProductID)
+                        WHEN LENGTH(RanProductID) = 2 THEN ('00' + RanProductID)
+                        WHEN LENGTH(RanProductID) = 3 THEN ('0' + RanProductID)
+                        ELSE RanProductID
+                    END;
+         SET RanProductID = Temp;
+         SET RanPrice = FLOOR(0 + RAND() * 99999);
+         SET RanDeptID = FLOOR(0 + RAND() * 50);
+         SET RanWeight = FLOOR(0 + RAND() * 9);
+         SET RanProductYear = FLOOR(1980 + RAND() * 2010);
+         SET RanExpireYear = FLOOR(1980 + RAND() * 2015);           
+         
+         INSERT INTO LCTPhaseThree.Student(ProductID, Price, DeptID, Weight, ProductYear, ExpireYear) VALUES (RanProductID, RanPrice, RanDeptID, RanWeight, RanProductYear, RanExpireYear) ON DUPLICATE KEY UPDATE ProductID=ProductID+15;
+        
+        SET i = i + 1;
+    END WHILE;
+    
+END
