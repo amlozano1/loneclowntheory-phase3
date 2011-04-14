@@ -26,6 +26,7 @@ public class LCTKAnon
     public LCTKAnon()
     {
         super();
+
         try
         {
             con = DriverManager.getConnection(connStr, user, pwd);
@@ -37,6 +38,21 @@ public class LCTKAnon
         catch (Exception e)
         {
             System.out.println("In LCTKAnon Constructor: " + e);
+        }
+    }
+
+    public void createDVTable()
+    {
+        Statement stmt = null;
+        String query = "";
+
+        try
+        {
+            
+        }
+        catch (Exception e)
+        {
+            System.out.println("In createDVTable: " + e);
         }
     }
 
@@ -126,6 +142,8 @@ public class LCTKAnon
 
                 System.out.println();
             }
+
+            this.outliers.beforeFirst();
         }
         catch (Exception e)
         {
