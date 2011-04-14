@@ -21,6 +21,7 @@ public class LCTKAnon
     protected ResultSetMetaData outliersMetaData;
     protected int privateTableCount;
     protected int outlierCount;
+    protected int[][][] dvTable;
 
     public LCTKAnon()
     {
@@ -49,7 +50,7 @@ public class LCTKAnon
         try
         {
             stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-            query = "SELECT " + quasiIdentList + ", count(*) as Count "
+            query = "SELECT ProductID as RowID," + quasiIdentList + ", count(*) as Count "
                     + "FROM LCTPhaseThree.Student "
                     + "GROUP BY " + quasiIdentList + ";";
             this.privateTable = stmt.executeQuery(query);
@@ -72,7 +73,7 @@ public class LCTKAnon
         try
         {
             stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-            query = "SELECT " + quasiIdentList + ", count(*) as Count "
+            query = "SELECT ProductID as RowID," + quasiIdentList + ", count(*) as Count "
                     + "FROM LCTPhaseThree.Student "
                     + "GROUP BY " + quasiIdentList + " "
                     + "HAVING Count < " + k + ";";
@@ -90,17 +91,19 @@ public class LCTKAnon
     {
         try
         {
-            while (privateTable.next())
-            {
-                for (int i = 1; i <= QI.length; i++)
-                {
-                    System.out.print(privateTable.getString(QI[i - 1]) + "\t");
-                }
+            this.privateTable.beforeFirst();
 
-                System.out.print(privateTable.getString("Count"));
+            while (this.privateTable.next())
+            {
+                for (int i = 1; i <= this.privateTableMetaData.getColumnCount(); i++)
+                {
+                    System.out.print(this.privateTable.getString(i) + "\t");
+                }
 
                 System.out.println();
             }
+
+            this.privateTable.beforeFirst();
         }
         catch (Exception e)
         {
@@ -112,14 +115,14 @@ public class LCTKAnon
     {
         try
         {
-            while (outliers.next())
-            {
-                for (int i = 1; i <= QI.length; i++)
-                {
-                    System.out.print(outliers.getString(QI[i - 1]) + "\t");
-                }
+            this.outliers.beforeFirst();
 
-                System.out.print(outliers.getString("Count"));
+            while (this.outliers.next())
+            {
+                for (int i = 1; i <= this.outliersMetaData.getColumnCount(); i++)
+                {
+                    System.out.print(this.outliers.getString(i) + "\t");
+                }
 
                 System.out.println();
             }
