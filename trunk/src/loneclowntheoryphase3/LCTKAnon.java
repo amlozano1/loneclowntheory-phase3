@@ -48,7 +48,22 @@ public class LCTKAnon
 
         try
         {
+            this.outliers.beforeFirst();
+            this.privateTable.beforeFirst();
             
+            while (this.outliers.next())
+            {
+                while (this.privateTable.next())
+                {
+                    // calculate dv and height
+
+                    // insert dv and height into dvtable
+                }
+                
+                this.privateTable.beforeFirst();
+            }
+            
+            this.outliers.beforeFirst();
         }
         catch (Exception e)
         {
