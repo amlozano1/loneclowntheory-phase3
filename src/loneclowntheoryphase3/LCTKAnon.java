@@ -535,20 +535,20 @@ public class LCTKAnon
 //             System.out.println("Generalization Years Test 1996 by 1: " + lct.generalizeYears("2001", 1));
 //             System.out.println("Generalization Years Test 1996 by 2: " + lct.generalizeYears("2001", 2));
 
-//            String[] QI =
-//            {
-//                "Weight", "ProductYear"
-//            };
-//
-//            System.out.println("QI List: " + lct.getQIString(QI));
-//
-//            lct.setPrivateTable(QI);
-//            lct.setOutliers(QI, 2);
-//
-//            System.out.println("\nPrinting PT\tRows: " + lct.privateTableCount + "\tColumns: " + lct.privateTableMetaData.getColumnCount() + "\n");
-//            lct.printPrivateTable(QI);
-//            System.out.println("\nPrinting Outliers\tRows: " + lct.outlierCount + "\tColumns: " + lct.outliersMetaData.getColumnCount() + "\n");
-//            lct.printOutliers(QI);
+            String[] QI =
+            {
+                "Weight", "ProductYear"
+            };
+
+            System.out.println("QI List: " + lct.getQIString(QI));
+
+            lct.setPrivateTable(QI);
+            lct.setOutliers(QI, 2);
+
+            System.out.println("\nPrinting PT\tRows: " + lct.privateTableCount + "\tColumns: " + lct.privateTableMetaData.getColumnCount() + "\n");
+            lct.printPrivateTable(QI);
+            System.out.println("\nPrinting Outliers\tRows: " + lct.outlierCount + "\tColumns: " + lct.outliersMetaData.getColumnCount() + "\n");
+            lct.printOutliers(QI);
         }
         catch (Exception e)
         {
