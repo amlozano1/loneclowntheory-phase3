@@ -8,12 +8,17 @@ import java.sql.*;
  */
 public class LCTKAnon
 {
+    // Constants
 
     protected final String dbms = "mysql";
     protected final String dbName = "LCTPhaseThree";
     protected final String connStr = "jdbc:mysql://localhost:3306";
     protected final String user = "root";
     protected final String pwd = "root";
+    protected final String STUDENT_TBL = "Student";
+    protected final String CPY_STUDENT_TBL = "Student_Copy";
+    protected final String DV_TBL = "DVTable";
+    // Data members
     protected Connection con;
     protected ResultSet privateTable;
     protected ResultSet outliers;
@@ -21,7 +26,6 @@ public class LCTKAnon
     protected ResultSetMetaData outliersMetaData;
     protected int privateTableCount;
     protected int outlierCount;
-    protected int[][][] dvTable;
 
     public LCTKAnon()
     {
@@ -41,34 +45,83 @@ public class LCTKAnon
         }
     }
 
+    public void copyTable(String newTable, String oldTable)
+    {
+        Statement stmt = null;
+        String dropQry = "DROP TABLE IF EXISTS " + newTable + ";";
+        String createQry = "CREATE TABLE " + newTable + " LIKE " + oldTable + ";";
+        String selIntoQry = "INSERT INTO " + newTable + " SELECT * FROM " + oldTable + ";";
+
+        try
+        {
+            stmt = con.createStatement();
+            stmt.execute(dropQry);
+            stmt.execute(createQry);
+            stmt.execute(selIntoQry);
+        }
+        catch (Exception e)
+        {
+            System.out.println("In copyTable: " + e);
+        }
+    }
+
     public void createDVTable()
     {
         Statement stmt = null;
         String query = "";
+        int[] dv;
 
         try
         {
             this.outliers.beforeFirst();
             this.privateTable.beforeFirst();
-            
+
             while (this.outliers.next())
             {
                 while (this.privateTable.next())
                 {
                     // calculate dv and height
-
                     // insert dv and height into dvtable
+                    if (!(this.outliers.getString("ProductID").equals(this.privateTable.getString("ProductID"))))
+                    {
+                        dv = this.getDV(this.outliers, this.privateTable);
+
+                        query = "INSERT INTO " + this.DV_TBL
+                                + " VALUES ('"
+                                + this.outliers.getString("ProductID") + "','"
+                                + this.privateTable.getString("ProductID") + "','"
+                                + this.getDVString(dv) + "','"
+                                + this.getHeight(dv) + "');";
+                        stmt = con.createStatement();
+                        stmt.execute(query);
+                    }
                 }
-                
+
                 this.privateTable.beforeFirst();
             }
-            
+
             this.outliers.beforeFirst();
         }
         catch (Exception e)
         {
             System.out.println("In createDVTable: " + e);
         }
+    }
+
+    public int[] getDV(ResultSet rs1, ResultSet rs2)
+    {
+        return new int[] {1,2};
+    }
+
+    public String getHeight(int[] dv)
+    {
+        int height = 0;
+
+        for (int i = 0; i < dv.length; i++)
+        {
+            height = height + dv[i];
+        }
+        return Integer.toString(height);
     }
 
     public void setPrivateTable(String[] QI)
@@ -81,8 +134,8 @@ public class LCTKAnon
         try
         {
             stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-            query = "SELECT ProductID as RowID," + quasiIdentList + ", count(*) as Count "
-                    + "FROM LCTPhaseThree.Student "
+            query = "SELECT ProductID ," + quasiIdentList + ", count(*) as Count "
+                    + "FROM " + this.CPY_STUDENT_TBL + " "
                     + "GROUP BY " + quasiIdentList + ";";
             this.privateTable = stmt.executeQuery(query);
             this.privateTableMetaData = this.privateTable.getMetaData();
@@ -104,8 +157,8 @@ public class LCTKAnon
         try
         {
             stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-            query = "SELECT ProductID as RowID," + quasiIdentList + ", count(*) as Count "
-                    + "FROM LCTPhaseThree.Student "
+            query = "SELECT ProductID ," + quasiIdentList + ", count(*) as Count "
+                    + "FROM " + this.CPY_STUDENT_TBL + " "
                     + "GROUP BY " + quasiIdentList + " "
                     + "HAVING Count < " + k + ";";
             this.outliers = stmt.executeQuery(query);
@@ -185,6 +238,25 @@ public class LCTKAnon
         return quasiIdentList;
     }
 
+    private String getDVString(int[] dv)
+    {
+        String dvString = "";
+
+        for (int i = 0; i < dv.length; i++)
+        {
+            if (i == (dv.length - 1))
+            {
+                dvString = dvString + dv[i];
+            }
+            else
+            {
+                dvString = dvString + dv[i] + ",";
+            }
+        }
+
+        return dvString;
+    }
+
     private int countRows(ResultSet rs)
     {
         int count = 0;
@@ -215,13 +287,13 @@ public class LCTKAnon
         char genString[] = anyString.toCharArray();
 
         //Check to make sure the amount to be generilzed in less then the length of the string being generilzed.
-        if(genAmount <= anyString.length())
+        if (genAmount <= anyString.length())
         {
-            for(int i = genAmount; i > 0; i--)
+            for (int i = genAmount; i > 0; i--)
             {
                 //System.out.println("i=" + i + " index=" + index);
                 genString[index] = '*';
-           
+
                 index--;
             }
         }
@@ -241,71 +313,71 @@ public class LCTKAnon
         int beginRange = 0;
         int endRange = 0;
 
-        if(genAmount == 0)
+        if (genAmount == 0)
         {
             result = Integer.toString(price);
         }
-        if(genAmount == 1)
+        if (genAmount == 1)
         {
-            if(price <= 10)
+            if (price <= 10)
             {
                 result = "<0-9>";
             }
             else
             {
-                beginRange = price - (price%10);
+                beginRange = price - (price % 10);
                 endRange = beginRange + 9;
                 result = ("<" + Integer.toString(beginRange) + "-" + Integer.toString(endRange) + ">");
             }
         }
-        if(genAmount == 2)
+        if (genAmount == 2)
         {
-            if(price <= 100)
+            if (price <= 100)
             {
                 result = "<0-99>";
             }
             else
             {
-                beginRange = price - (price%100);
+                beginRange = price - (price % 100);
                 endRange = beginRange + 99;
                 result = ("<" + Integer.toString(beginRange) + "-" + Integer.toString(endRange) + ">");
             }
         }
-        if(genAmount == 3)
+        if (genAmount == 3)
         {
-            if(price <= 1000)
+            if (price <= 1000)
             {
                 result = "<0-999>";
             }
             else
             {
-                beginRange = price - (price%1000);
+                beginRange = price - (price % 1000);
                 endRange = beginRange + 999;
                 result = ("<" + Integer.toString(beginRange) + "-" + Integer.toString(endRange) + ">");
             }
         }
-        if(genAmount == 4)
+        if (genAmount == 4)
         {
-            if(price <= 10000)
+            if (price <= 10000)
             {
                 result = "<0-9999>";
             }
             else
             {
-                beginRange = price - (price%10000);
+                beginRange = price - (price % 10000);
                 endRange = beginRange + 9999;
                 result = ("<" + Integer.toString(beginRange) + "-" + Integer.toString(endRange) + ">");
             }
         }
-        if(genAmount == 5)
+        if (genAmount == 5)
         {
-            if(price <= 100000)
+            if (price <= 100000)
             {
                 result = "<0-99999>";
             }
             else
             {
-                beginRange = price - (price%100000);
+                beginRange = price - (price % 100000);
                 endRange = beginRange + 99999;
                 result = ("<" + Integer.toString(beginRange) + "-" + Integer.toString(endRange) + ">");
             }
@@ -322,13 +394,13 @@ public class LCTKAnon
         int beginRange = 0;
         int endRange = 0;
 
-        if(genAmount == 0)
+        if (genAmount == 0)
         {
             result = Integer.toString(deptID);
         }
-        if(genAmount == 1)
+        if (genAmount == 1)
         {
-            if(deptID == 0)
+            if (deptID == 0)
             {
                 result = "<0-1>";
             }
@@ -339,9 +411,9 @@ public class LCTKAnon
                 result = ("<" + Integer.toString(beginRange) + "-" + Integer.toString(endRange) + ">");
             }
         }
-        if(genAmount == 2)
+        if (genAmount == 2)
         {
-            if(deptID < 1)
+            if (deptID < 1)
             {
                 result = "<0-3>";
             }
@@ -352,9 +424,9 @@ public class LCTKAnon
                 result = ("<" + Integer.toString(beginRange) + "-" + Integer.toString(endRange) + ">");
             }
         }
-        if(genAmount == 3)
+        if (genAmount == 3)
         {
-            if(deptID < 7)
+            if (deptID < 7)
             {
                 result = "<0-7>";
             }
@@ -365,9 +437,9 @@ public class LCTKAnon
                 result = ("<" + Integer.toString(beginRange) + "-" + Integer.toString(endRange) + ">");
             }
         }
-        if(genAmount == 4)
+        if (genAmount == 4)
         {
-            if(deptID < 15)
+            if (deptID < 15)
             {
                 result = "<0-15>";
             }
@@ -378,9 +450,9 @@ public class LCTKAnon
                 result = ("<" + Integer.toString(beginRange) + "-" + Integer.toString(endRange) + ">");
             }
         }
-        if(genAmount == 5)
+        if (genAmount == 5)
         {
-            if(deptID < 31)
+            if (deptID < 31)
             {
                 result = "<0-32>";
             }
@@ -391,12 +463,12 @@ public class LCTKAnon
                 result = ("<" + Integer.toString(beginRange) + "-" + Integer.toString(endRange) + ">");
             }
         }
-        if(genAmount == 6)
+        if (genAmount == 6)
         {
-           result = "<0-50>";
+            result = "<0-50>";
         }
-            
-     
+
+
         return result;
     }
 
@@ -406,13 +478,13 @@ public class LCTKAnon
         int beginRange = 0;
         int endRange = 0;
 
-        if(genAmount == 0)
+        if (genAmount == 0)
         {
             result = Integer.toString(weight);
         }
-        if(genAmount == 1)
+        if (genAmount == 1)
         {
-            if(weight == 0)
+            if (weight == 0)
             {
                 result = "<0-1>";
             }
@@ -423,25 +495,25 @@ public class LCTKAnon
                 result = ("<" + Integer.toString(beginRange) + "-" + Integer.toString(endRange) + ">");
             }
         }
-        if(genAmount == 2)
+        if (genAmount == 2)
         {
-            if(weight <= 1)
+            if (weight <= 1)
             {
                 result = "<0-3>";
             }
-            if(weight == 9)
+            if (weight == 9)
             {
                 beginRange = weight - 3;
                 endRange = weight;
                 result = ("<" + Integer.toString(beginRange) + "-" + Integer.toString(endRange) + ">");
             }
-            if(weight == 8)
+            if (weight == 8)
             {
                 beginRange = weight - 2;
                 endRange = weight + 1;
                 result = ("<" + Integer.toString(beginRange) + "-" + Integer.toString(endRange) + ">");
             }
-            if(weight == 2 || weight == 3 || weight == 4 || weight == 5 || weight == 6 || weight == 7)
+            if (weight == 2 || weight == 3 || weight == 4 || weight == 5 || weight == 6 || weight == 7)
             {
                 beginRange = weight - 1;
                 endRange = weight + 2;
@@ -460,15 +532,15 @@ public class LCTKAnon
         String result;
 
         //Check to make sure the amount to be generilzed in less then the length of the string being generilzed.
-        if(genAmount == 1)
-        {   
+        if (genAmount == 1)
+        {
             decade = (Character.toString(genString[2]) + "0" + "s");
             return decade;
         }
-        if(genAmount == 2)
+        if (genAmount == 2)
         {
-            
-               for(int i = 3; i > 1; i--)
+
+            for (int i = 3; i > 1; i--)
             {
                 genString[i] = '*';
             }
@@ -506,34 +578,36 @@ public class LCTKAnon
 //            System.out.println("Generalization Price Test 120 by 4: " + lct.generalizePrice(120, 4));
 //            System.out.println("Generalization Price Test 1073 by 4: " + lct.generalizePrice(1073, 4));
 //            System.out.println("Generalization Price Test 300 by 5: " + lct.generalizePrice(300, 5));
+//
+//            System.out.println("Generalization DeptID Test 13 by 0: " + lct.generalizeDeptID(13, 0));
+//            System.out.println("Generalization DeptID Test 13 by 1: " + lct.generalizeDeptID(13, 1));
+//            System.out.println("Generalization DeptID Test 13 by 2: " + lct.generalizeDeptID(13, 2));
+//            System.out.println("Generalization DeptID Test 13 by 3: " + lct.generalizeDeptID(13, 3));
+//            System.out.println("Generalization DeptID Test 15 by 4: " + lct.generalizeDeptID(15, 4));
+//            System.out.println("Generalization DeptID Test 15 by 5: " + lct.generalizeDeptID(15, 5));
+//            System.out.println("Generalization DeptID Test 40 by 5: " + lct.generalizeDeptID(40, 5));
+//            System.out.println("Generalization DeptID Test 40 by 6: " + lct.generalizeDeptID(40, 6));
+//
+//            System.out.println("Generalization Weight Test 5 by 0: " + lct.generalizeWeight(5, 0));
+//            System.out.println("Generalization Weight Test 5 by 1: " + lct.generalizeWeight(5, 1));
+//            System.out.println("Generalization Weight Test 5 by 2: " + lct.generalizeWeight(5, 2));
+//            System.out.println("Generalization Weight Test 0 by 1: " + lct.generalizeWeight(0, 1));
+//            System.out.println("Generalization Weight Test 9 by 2: " + lct.generalizeWeight(9, 2));
+//            System.out.println("Generalization Weight Test 8 by 1: " + lct.generalizeWeight(8, 1));
+//            System.out.println("Generalization Weight Test 6 by 2: " + lct.generalizeWeight(6, 2));
+//            System.out.println("Generalization Weight Test 7 by 2: " + lct.generalizeWeight(7, 2));
+//
+//            System.out.println("Generalization Years Test 1996 by 0: " + lct.generalizeYears("1996", 0));
+//            System.out.println("Generalization Years Test 1996 by 1: " + lct.generalizeYears("1996", 1));
+//            System.out.println("Generalization Years Test 1996 by 2: " + lct.generalizeYears("1996", 2));
+//            System.out.println("Generalization Years Test 1996 by 0: " + lct.generalizeYears("1985", 0));
+//            System.out.println("Generalization Years Test 1996 by 1: " + lct.generalizeYears("1985", 1));
+//            System.out.println("Generalization Years Test 1996 by 2: " + lct.generalizeYears("1985", 2));
+//            System.out.println("Generalization Years Test 1996 by 0: " + lct.generalizeYears("2001", 0));
+//            System.out.println("Generalization Years Test 1996 by 1: " + lct.generalizeYears("2001", 1));
+//            System.out.println("Generalization Years Test 1996 by 2: " + lct.generalizeYears("2001", 2));
 
-//             System.out.println("Generalization DeptID Test 13 by 0: " + lct.generalizeDeptID(13, 0));
-//             System.out.println("Generalization DeptID Test 13 by 1: " + lct.generalizeDeptID(13, 1));
-//             System.out.println("Generalization DeptID Test 13 by 2: " + lct.generalizeDeptID(13, 2));
-//             System.out.println("Generalization DeptID Test 13 by 3: " + lct.generalizeDeptID(13, 3));
-//             System.out.println("Generalization DeptID Test 15 by 4: " + lct.generalizeDeptID(15, 4));
-//             System.out.println("Generalization DeptID Test 15 by 5: " + lct.generalizeDeptID(15, 5));
-//             System.out.println("Generalization DeptID Test 40 by 5: " + lct.generalizeDeptID(40, 5));
-//             System.out.println("Generalization DeptID Test 40 by 6: " + lct.generalizeDeptID(40, 6));
-
-//             System.out.println("Generalization Weight Test 5 by 0: " + lct.generalizeWeight(5, 0));
-//             System.out.println("Generalization Weight Test 5 by 1: " + lct.generalizeWeight(5, 1));
-//             System.out.println("Generalization Weight Test 5 by 2: " + lct.generalizeWeight(5, 2));
-//             System.out.println("Generalization Weight Test 0 by 1: " + lct.generalizeWeight(0, 1));
-//             System.out.println("Generalization Weight Test 9 by 2: " + lct.generalizeWeight(9, 2));
-//             System.out.println("Generalization Weight Test 8 by 1: " + lct.generalizeWeight(8, 1));
-//             System.out.println("Generalization Weight Test 6 by 2: " + lct.generalizeWeight(6, 2));
-//             System.out.println("Generalization Weight Test 7 by 2: " + lct.generalizeWeight(7, 2));
-             
-//             System.out.println("Generalization Years Test 1996 by 0: " + lct.generalizeYears("1996", 0));
-//             System.out.println("Generalization Years Test 1996 by 1: " + lct.generalizeYears("1996", 1));
-//             System.out.println("Generalization Years Test 1996 by 2: " + lct.generalizeYears("1996", 2));
-//             System.out.println("Generalization Years Test 1996 by 0: " + lct.generalizeYears("1985", 0));
-//             System.out.println("Generalization Years Test 1996 by 1: " + lct.generalizeYears("1985", 1));
-//             System.out.println("Generalization Years Test 1996 by 2: " + lct.generalizeYears("1985", 2));
-//             System.out.println("Generalization Years Test 1996 by 0: " + lct.generalizeYears("2001", 0));
-//             System.out.println("Generalization Years Test 1996 by 1: " + lct.generalizeYears("2001", 1));
-//             System.out.println("Generalization Years Test 1996 by 2: " + lct.generalizeYears("2001", 2));
+            lct.copyTable(lct.CPY_STUDENT_TBL, lct.STUDENT_TBL);
 
             String[] QI =
             {
@@ -549,6 +623,8 @@ public class LCTKAnon
             lct.printPrivateTable(QI);
             System.out.println("\nPrinting Outliers\tRows: " + lct.outlierCount + "\tColumns: " + lct.outliersMetaData.getColumnCount() + "\n");
             lct.printOutliers(QI);
+
+            lct.createDVTable();
         }
         catch (Exception e)
         {
