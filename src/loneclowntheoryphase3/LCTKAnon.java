@@ -707,8 +707,11 @@ public class LCTKAnon
   /** generalizes in ranges that are powers of two
    * */
     public String generalizeInPowersOfTwo(int generlizee, int genAmount)
-  {  
-    String result = null;
+  { 
+    if (genAmount == 0)
+    {
+        return Integer.toString(generlizee);
+    }
     int beginRange = 0;
     int endRange = 0;
     int range = 1 << genAmount;//find the range for this generalization, IE the spread between each generlization
