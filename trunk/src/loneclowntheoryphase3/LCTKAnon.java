@@ -713,7 +713,7 @@ public class LCTKAnon
     int endRange = 0;
     int range = 1 << genAmount;//find the range for this generalization, IE the spread between each generlization
     beginRange = generlizee/(range)*range;//get the lower bound by generalizee DIV range (integer divisions) times range
-    endRange = beginRange + range;//add one range to get the end range.
+    endRange = beginRange + range - 1;//add one range to get the end range.
     return "<" + beginRange + "-" + endRange + ">";   
   }
 
