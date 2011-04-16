@@ -97,22 +97,26 @@ public class Main
 
             lct.copyTable(lct.CPY_STUDENT_TBL, lct.STUDENT_TBL);
 
+            //ProductID: String (Unique Key)
+            //Price: Int
+            //DeptID: Int
+            //Weight: Int
+            //ProductYear: String
+            //ExpireYear: String
+
             String[] QI =
             {
-                "Weight", "ProductYear"
+                "DeptID"
             };
 
             System.out.println("QI List: " + lct.getQIString(QI));
 
-            lct.setPrivateTable(QI);
-            lct.setOutliers(QI, 2);
+            lct.kanon(QI, 2, 2);
 
             System.out.println("\nPrinting PT\tRows: " + lct.privateTableCount + "\tColumns: " + lct.privateTableMetaData.getColumnCount() + "\n");
             lct.printPrivateTable(QI);
             System.out.println("\nPrinting Outliers\tRows: " + lct.outlierCount + "\tColumns: " + lct.outliersMetaData.getColumnCount() + "\n");
             lct.printOutliers(QI);
-
-            lct.createDVTable();
 
             con.close();
         }

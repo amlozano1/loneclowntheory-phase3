@@ -9,7 +9,6 @@ import java.sql.*;
 public class LCTKAnon
 {
     // Constants
-
     protected final String dbms = "mysql";
     protected final String dbName = "LCTPhaseThree";
     protected final String connStr = "jdbc:mysql://localhost:3306";
@@ -26,6 +25,9 @@ public class LCTKAnon
     protected ResultSetMetaData outliersMetaData;
     protected int privateTableCount;
     protected int outlierCount;
+    protected String[] QI;
+    protected int k;
+    protected int maxsup;
 
     public LCTKAnon()
     {
@@ -43,6 +45,17 @@ public class LCTKAnon
         {
             System.out.println("In LCTKAnon Constructor: " + e);
         }
+    }
+
+    public void kanon(String[] QI, int k, int maxsup)
+    {
+        this.QI = QI;
+        this.k = k;
+        this.maxsup = maxsup;
+
+        this.setPrivateTable(QI);
+        this.setOutliers(QI, k);
+        this.createDVTable();
     }
 
     public void copyTable(String newTable, String oldTable)
@@ -110,7 +123,93 @@ public class LCTKAnon
 
     public int[] getDV(ResultSet rs1, ResultSet rs2)
     {
-        return new int[] {1,2};
+        int dv[];
+
+        try
+        {
+            dv = new int[this.QI.length];
+
+            for (int i = 0; i < QI.length; i++)
+            {
+                dv[i] = this.getDistance(this.outliers.getString(QI[i]), this.privateTable.getString(QI[i]), QI[i]);
+            }
+
+            return dv;
+        }
+        catch (Exception e)
+        {
+            System.out.println("In getDV: " + e);
+            return null;
+        }
+    }
+
+    public int getDistance(String str1, String str2, String attrName)
+    {
+        int distance = 0;
+
+        String newStr1 = str1;
+        String newStr2 = str2;
+
+        if (attrName.equals("ProductID"))
+        {
+            while (!(newStr1.equals(newStr2)))
+            {
+                distance++;
+                newStr1 = this.generalizeString(str1, distance);
+                newStr2 = this.generalizeString(str2, distance);
+            }
+        }
+        else if (attrName.equals("Price"))
+        {
+            while (!(newStr1.equals(newStr2)))
+            {
+                distance++;
+                newStr1 = this.generalizePrice(Integer.parseInt(str1), distance);
+                newStr2 = this.generalizePrice(Integer.parseInt(str2), distance);
+            }
+        }
+        else if (attrName.equals("DeptID"))
+        {
+            while (!(newStr1.equals(newStr2)))
+            {
+                distance++;
+                newStr1 = this.generalizeDeptID(Integer.parseInt(str1), distance);
+                newStr2 = this.generalizeDeptID(Integer.parseInt(str2), distance);
+            }
+        }
+        else if (attrName.equals("Weight"))
+        {
+            while (!(newStr1.equals(newStr2)))
+            {
+                distance++;
+                newStr1 = this.generalizeWeight(Integer.parseInt(str1), distance);
+                newStr2 = this.generalizeWeight(Integer.parseInt(str2), distance);
+            }
+        }
+        else if (attrName.equals("ProductYear"))
+        {
+            while (!(newStr1.equals(newStr2)))
+            {
+                distance++;
+                newStr1 = this.generalizeYears(str1, distance);
+                newStr2 = this.generalizeYears(str2, distance);
+            }
+        }
+        else if (attrName.equals("ExpireYear"))
+        {
+            while (!(newStr1.equals(newStr2)))
+            {
+                distance++;
+                newStr1 = this.generalizeYears(str1, distance);
+                newStr2 = this.generalizeYears(str2, distance);
+            }
+        }
+        else
+        {
+            distance = -1;
+        }
+
+        return distance;
     }
 
     public String getHeight(int[] dv)
@@ -539,8 +638,21 @@ public class LCTKAnon
         }
         if (genAmount == 2)
         {
-
             for (int i = 3; i > 1; i--)
+            {
+                genString[i] = '*';
+            }
+        }
+        if (genAmount == 3)
+        {
+            for (int i = 3; i > 0; i--)
+            {
+                genString[i] = '*';
+            }
+        }
+        if (genAmount == 4)
+        {
+            for (int i = 3; i >= 0; i--)
             {
                 genString[i] = '*';
             }
@@ -549,7 +661,6 @@ public class LCTKAnon
 
         return result;
     }
-
 //    public static void main(String[] args)
 //    {
 //        try
