@@ -704,142 +704,29 @@ public class LCTKAnon
     }
     return result;
   }
+  /** generalizes in ranges that are powers of two
+   * */
+    public String generalizeInPowersOfTwo(int generlizee, int genAmount)
+  {  
+    String result = null;
+    int beginRange = 0;
+    int endRange = 0;
+    int range = 1 << genAmount;
+    beginRange = generlizee/(range)*range;
+    endRange = beginRange + range;
+    return "<" + beginRange + "-" + endRange + ">";   
+  }
 
   //Generalizes the DeptID cloumn.  There are 0-6 possible levels. Level 0 is no generalization. Level 1 generalization a range of 2.
   //Level 2 generalization a range of 4. Level 3 generalization a range of 8. Level 4 generalization a range of 16. Level 5 generalization a range of 32.
   //Level 6 generalization a range of 64.
   public String generalizeDeptID(int deptID, int genAmount)
   {
-    String result = null;
-    int beginRange = 0;
-    int endRange = 0;
-
-    if (genAmount == 0)
-    {
-      result = Integer.toString(deptID);
-    }
-    if (genAmount == 1)
-    {
-      if (deptID == 0)
-      {
-        result = "<0-1>";
-      }
-      else
-      {
-        beginRange = deptID - 1;
-        endRange = deptID;
-        result = ("<" + Integer.toString(beginRange) + "-" + Integer.toString(endRange) + ">");
-      }
-    }
-    if (genAmount == 2)
-    {
-      if (deptID < 1)
-      {
-        result = "<0-3>";
-      }
-      else
-      {
-        beginRange = deptID - 1;
-        endRange = deptID + 2;
-        result = ("<" + Integer.toString(beginRange) + "-" + Integer.toString(endRange) + ">");
-      }
-    }
-    if (genAmount == 3)
-    {
-      if (deptID < 7)
-      {
-        result = "<0-7>";
-      }
-      else
-      {
-        beginRange = deptID - 5;
-        endRange = deptID + 2;
-        result = ("<" + Integer.toString(beginRange) + "-" + Integer.toString(endRange) + ">");
-      }
-    }
-    if (genAmount == 4)
-    {
-      if (deptID < 15)
-      {
-        result = "<0-15>";
-      }
-      else
-      {
-        beginRange = deptID - 8;
-        endRange = deptID + 7;
-        result = ("<" + Integer.toString(beginRange) + "-" + Integer.toString(endRange) + ">");
-      }
-    }
-    if (genAmount == 5)
-    {
-      if (deptID < 31)
-      {
-        result = "<0-32>";
-      }
-      else
-      {
-        beginRange = deptID - 16;
-        endRange = deptID + 15;
-        result = ("<" + Integer.toString(beginRange) + "-" + Integer.toString(endRange) + ">");
-      }
-    }
-    if (genAmount == 6)
-    {
-      result = "<0-50>";
-    }
-
-    return result;
+      return generalizeInPowersOfTwo(deptID, genAmount);
   }
-
   public String generalizeWeight(int weight, int genAmount)
   {
-    String result = null;
-    int beginRange = 0;
-    int endRange = 0;
-
-    if (genAmount == 0)
-    {
-      result = Integer.toString(weight);
-    }
-    if (genAmount == 1)
-    {
-      if (weight == 0)
-      {
-        result = "<0-1>";
-      }
-      else
-      {
-        beginRange = weight - 1;
-        endRange = weight;
-        result = ("<" + Integer.toString(beginRange) + "-" + Integer.toString(endRange) + ">");
-      }
-    }
-    if (genAmount == 2)
-    {
-      if (weight <= 1)
-      {
-        result = "<0-3>";
-      }
-      if (weight == 9)
-      {
-        beginRange = weight - 3;
-        endRange = weight;
-        result = ("<" + Integer.toString(beginRange) + "-" + Integer.toString(endRange) + ">");
-      }
-      if (weight == 8)
-      {
-        beginRange = weight - 2;
-        endRange = weight + 1;
-        result = ("<" + Integer.toString(beginRange) + "-" + Integer.toString(endRange) + ">");
-      }
-      if (weight == 2 || weight == 3 || weight == 4 || weight == 5 || weight == 6 || weight == 7)
-      {
-        beginRange = weight - 1;
-        endRange = weight + 2;
-        result = ("<" + Integer.toString(beginRange) + "-" + Integer.toString(endRange) + ">");
-      }
-    }
-    return result;
+      return generalizeInPowersOfTwo(weight, genAmount);
   }
 
   //Generalizes the ProductYear and ExpireYear columns. There are 0-2 levels possible.  Level 0 results in no generalization. Levle 1 results in the decaded being returned.
