@@ -167,7 +167,7 @@ public class LCTKAnon
         height = (prevMax + prevMin) / 2;
       }
     }
-    catch (Exception e)
+    catch (SQLException e)
     {
       System.out.println("In findSolution: " + e);
     }
