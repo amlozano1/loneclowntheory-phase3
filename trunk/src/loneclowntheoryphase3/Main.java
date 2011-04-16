@@ -106,7 +106,7 @@ public class Main
 
             String[] QI =
             {
-                "ProductYear"
+                 "ProductYear", "ExpireYear"
             };
 
 //            System.out.println("QI List: " + lct.getQIString(QI));
