@@ -106,17 +106,19 @@ public class Main
 
             String[] QI =
             {
-                "ProductID"
+                "ProductYear"
             };
 
-            System.out.println("QI List: " + lct.getQIString(QI));
+//            System.out.println("QI List: " + lct.getQIString(QI));
 
-            lct.kanon(QI, 2, 2);
+            lct.kanon(QI, 2, 5);
 
-            System.out.println("\nPrinting PT\tRows: " + lct.privateTableCount + "\tColumns: " + lct.privateTableMetaData.getColumnCount() + "\n");
-            lct.printPrivateTable(QI);
-            System.out.println("\nPrinting Outliers\tRows: " + lct.outlierCount + "\tColumns: " + lct.outliersMetaData.getColumnCount() + "\n");
-            lct.printOutliers(QI);
+//            System.out.println("\nPrinting PT\tRows: " + lct.privateTableCount + "\tColumns: " + lct.privateTableMetaData.getColumnCount() + "\n");
+//            lct.printPrivateTable(QI);
+//            System.out.println("\nPrinting Outliers\tRows: " + lct.outlierCount + "\tColumns: " + lct.outliersMetaData.getColumnCount() + "\n");
+//            lct.printOutliers(QI);
+//            lct.printDVTable();
+//            System.out.println(lct.maxHeight);
 
             con.close();
         }

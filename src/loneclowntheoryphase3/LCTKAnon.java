@@ -1,6 +1,7 @@
 package loneclowntheoryphase3;
 
 import java.sql.*;
+import java.util.*;
 
 /**
  *
@@ -28,6 +29,9 @@ public class LCTKAnon
     protected String[] QI;
     protected int k;
     protected int maxsup;
+    protected int[][][] dvtable;
+    protected int maxHeight = 0;
+    protected ArrayList<int[]> possibleSolutions;
 
     public LCTKAnon()
     {
@@ -56,6 +60,108 @@ public class LCTKAnon
         this.setPrivateTable(QI);
         this.setOutliers(QI, k);
         this.createDVTable();
+        this.possibleSolutions = this.findSolution();
+        for (int i = 0; i < this.possibleSolutions.size(); i++)
+            System.out.println(this.getDVString(this.possibleSolutions.get(i)));
+    }
+
+    public ArrayList<int[]> findSolution()
+    {
+        ArrayList<int[]> currSolutions = new ArrayList<int[]>();
+        ArrayList<int[]> prevSolutions = new ArrayList<int[]>();
+
+        String query = "";
+        Statement stmt = null;
+        ResultSet rs = null;
+
+        int numOutliers = 0;
+        int prevMax = this.maxHeight;
+        int prevMin = 0;
+        //int solutionHeight = prevMax;
+
+        int height = (prevMax + prevMin) / 2;
+        int prevHeight = 0;
+
+        try
+        {
+            while (height != prevHeight)
+            {
+                query = "SELECT DISTINCT dv FROM " + this.DV_TBL + " WHERE height = " + height + ";";
+                stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+                rs = stmt.executeQuery(query);
+
+                while (rs.next())
+                {
+                    numOutliers = 0;
+
+                    int[] testDV = this.getDVArray(rs.getString("dv"));
+
+                    for (int i = 0; i < this.outlierCount; i++)
+                    {
+                        int rowCount = 0;
+
+                        for (int j = 0; j < this.privateTableCount; j++)
+                        {
+                            if (this.dominates(this.dvtable[i][j], testDV))
+                            {
+                                rowCount++;
+                            }
+                        }
+
+                        if (rowCount < this.k)
+                        {
+                            numOutliers++;
+                        }
+                    }
+
+                    if (numOutliers <= this.maxsup)
+                    {
+                        //solutionHeight = height;
+                        prevMax = height;
+                        currSolutions.add(testDV);
+                    }
+                    else
+                    {
+                        prevMin = height;
+                    }
+                }
+
+                if (currSolutions.size() > 0)
+                {
+                    prevSolutions.clear();
+                    prevSolutions.addAll(currSolutions);
+                    currSolutions.clear();
+                }
+
+                prevHeight = height;
+                height = (prevMax + prevMin) / 2;
+            }
+        }
+        catch (Exception e)
+        {
+            System.out.println("In findSolution: " + e);
+        }
+
+        return prevSolutions;
+    }
+
+    protected boolean dominates(int[] dv1, int[] dv2)
+    {
+        boolean dom = true;
+
+        for (int i = 0; i < dv1.length; i++)
+        {
+            if (dv1[i] <= dv2[i])
+            {
+                dom = true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        return dom;
     }
 
     public void copyTable(String newTable, String oldTable)
@@ -83,33 +189,45 @@ public class LCTKAnon
         Statement stmt = null;
         String query = "";
         int[] dv;
+        int height = 0;
+
+        this.dvtable = new int[this.outlierCount][this.privateTableCount][];
 
         try
         {
             this.outliers.beforeFirst();
             this.privateTable.beforeFirst();
 
+            int i = 0;
+
             while (this.outliers.next())
             {
+                int j = 0;
+
                 while (this.privateTable.next())
                 {
-                    // calculate dv and height
-                    // insert dv and height into dvtable
-                    if (!(this.outliers.getString("ProductID").equals(this.privateTable.getString("ProductID"))))
-                    {
-                        dv = this.getDV(this.outliers, this.privateTable);
+                    dv = this.getDV(this.outliers, this.privateTable);
+                    height = this.getHeight(dv);
 
-                        query = "INSERT INTO " + this.DV_TBL
-                                + " VALUES ('"
-                                + this.outliers.getString("ProductID") + "','"
-                                + this.privateTable.getString("ProductID") + "','"
-                                + this.getDVString(dv) + "','"
-                                + this.getHeight(dv) + "');";
-                        stmt = con.createStatement();
-                        stmt.execute(query);
+                    if (height > this.maxHeight)
+                    {
+                        this.maxHeight = height;
                     }
+
+                    this.dvtable[i][j] = dv;
+
+                    query = "INSERT INTO " + this.DV_TBL
+                            + " VALUES ('"
+                            + this.outliers.getString("ProductID") + "','"
+                            + this.privateTable.getString("ProductID") + "','"
+                            + this.getDVString(dv) + "','"
+                            + height + "');";
+                    stmt = con.createStatement();
+                    stmt.execute(query);
+                    j++;
                 }
 
+                i++;
                 this.privateTable.beforeFirst();
             }
 
@@ -212,7 +330,7 @@ public class LCTKAnon
         return distance;
     }
 
-    public String getHeight(int[] dv)
+    public int getHeight(int[] dv)
     {
         int height = 0;
 
@@ -220,7 +338,8 @@ public class LCTKAnon
         {
             height = height + dv[i];
         }
-        return Integer.toString(height);
+
+        return height;
     }
 
     public void setPrivateTable(String[] QI)
@@ -354,6 +473,29 @@ public class LCTKAnon
         }
 
         return dvString;
+    }
+
+    protected int[] getDVArray(String dvStr)
+    {
+        int[] result;
+
+        if (dvStr.length() == 1)
+        {
+            result = new int[1];
+            result[0] = Integer.parseInt(dvStr);
+        }
+        else
+        {
+            String[] strArray = dvStr.split(",");
+            result = new int[strArray.length];
+
+            for (int i = 0; i < strArray.length; i++)
+            {
+                result[i] = Integer.parseInt(strArray[i]);
+            }
+        }
+
+        return result;
     }
 
     protected int countRows(ResultSet rs)
@@ -567,7 +709,6 @@ public class LCTKAnon
             result = "<0-50>";
         }
 
-
         return result;
     }
 
@@ -660,6 +801,23 @@ public class LCTKAnon
         result = new String(genString);
 
         return result;
+    }
+
+    public void printDVTable()
+    {
+        for (int i = 0; i < this.dvtable.length; i++)
+        {
+            for (int j = 0; j < this.dvtable[i].length; j++)
+            {
+                System.out.print("[");
+                for (int k = 0; k < this.dvtable[i][j].length; k++)
+                {
+                    System.out.print(this.dvtable[i][j][k] + ",");
+                }
+                System.out.print("]\t");
+            }
+            System.out.println();
+        }
     }
 //    public static void main(String[] args)
 //    {
