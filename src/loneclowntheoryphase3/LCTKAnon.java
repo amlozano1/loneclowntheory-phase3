@@ -32,6 +32,7 @@ public class LCTKAnon
     protected int[][][] dvtable;
     protected int maxHeight = 0;
     protected ArrayList<int[]> possibleSolutions;
+    protected ArrayList<String> suppressionList;
 
     public LCTKAnon()
     {
@@ -62,7 +63,32 @@ public class LCTKAnon
         this.createDVTable();
         this.possibleSolutions = this.findSolution();
         for (int i = 0; i < this.possibleSolutions.size(); i++)
+        {
             System.out.println(this.getDVString(this.possibleSolutions.get(i)));
+            this.generalizePT(this.possibleSolutions.get(i));
+        }
+    }
+
+    public void generalizePT(int[] dv)
+    {
+        try
+        {
+            this.privateTable.beforeFirst();
+
+            while (this.privateTable.next())
+            {
+                for (int i = 0; i < QI.length; i++)
+                {
+                    this.privateTable.updateString(QI[i], this.genAttr(this.privateTable.getString(QI[i]), QI[i],dv[i]));
+                }
+
+                this.privateTable.updateRow();
+            }
+        }
+        catch (Exception e)
+        {
+            System.out.println("In generalizePT: " + e);
+        }
     }
 
     public ArrayList<int[]> findSolution()
@@ -328,6 +354,38 @@ public class LCTKAnon
         }
 
         return distance;
+    }
+
+    public String genAttr(String str, String attrName, int distance)
+    {
+        if (attrName.equals("ProductID"))
+        {
+            return this.generalizeString(str, distance);
+        }
+        else if (attrName.equals("Price"))
+        {
+            return this.generalizePrice(Integer.parseInt(str), distance);
+        }
+        else if (attrName.equals("DeptID"))
+        {
+            return this.generalizeDeptID(Integer.parseInt(str), distance);
+        }
+        else if (attrName.equals("Weight"))
+        {
+            return this.generalizeWeight(Integer.parseInt(str), distance);
+        }
+        else if (attrName.equals("ProductYear"))
+        {
+            return this.generalizeYears(str, distance);
+        }
+        else if (attrName.equals("ExpireYear"))
+        {
+            return this.generalizeYears(str, distance);
+        }
+        else
+        {
+            return "error";
+        }
     }
 
     public int getHeight(int[] dv)
