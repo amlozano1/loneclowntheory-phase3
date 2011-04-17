@@ -22,6 +22,10 @@ CREATE  TABLE IF NOT EXISTS `LCTPhaseThree`.`Student` (
   UNIQUE INDEX `ProductID_UNIQUE` (`ProductID` ASC) )
 ENGINE = InnoDB;
 
+-- -----------------------------------------------------
+-- Table `LCTPhaseThree`.`DVTable`
+-- -----------------------------------------------------
+
 DROP TABLE IF EXISTS `LCTPhaseThree`.`DVTable` ;
 
 CREATE TABLE IF NOT EXISTS `LCTPhaseThree`.`DVTable`
@@ -33,6 +37,10 @@ CREATE TABLE IF NOT EXISTS `LCTPhaseThree`.`DVTable`
   PRIMARY KEY (`OutlierID`,`OtherID`)
 )
 ENGINE = InnoDB;
+
+-- -----------------------------------------------------
+-- Table `LCTPhaseThree`.`Result`
+-- -----------------------------------------------------
 
 DROP TABLE IF EXISTS `LCTPhaseThree`.`Result` ;
 

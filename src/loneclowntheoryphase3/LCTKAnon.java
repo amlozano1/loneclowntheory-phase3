@@ -1,3 +1,17 @@
+/**
+ * Lone Clown Theory Phase 3
+ *
+ * Brandon Andersen
+ * Brian Arvidson
+ * Anthony Lozano
+ * Justin Paglierani
+ *
+ * CSE 467/598
+ * Spring 2011
+ * Prof. Ahn
+ *
+ * LCTKAnon
+ */
 package loneclowntheoryphase3;
 
 import java.sql.*;
@@ -19,6 +33,7 @@ public class LCTKAnon
     protected final String CPY_STUDENT_TBL = "Student_Copy";
     protected final String RESULT_TBL = "Result";
     protected final String DV_TBL = "DVTable";
+    protected final String DV_TBL_COPY = "DVTable_Copy";
     private final int PRICE_GROUPING_BASE = 10;
     private final int DEPT_ID_GROUPING_BASE = 2;
     private final int WEIGHT_GROUPING_BASE = 2;
@@ -38,10 +53,14 @@ public class LCTKAnon
     protected ArrayList<int[]> possibleSolutions;
     protected ArrayList<ArrayList<String>> suppressionList;
 
+    /**
+     * Default constructor to initialize the class
+     */
     public LCTKAnon()
     {
         super();
 
+        // setup db connection
         try
         {
             con = DriverManager.getConnection(connStr, user, pwd);
@@ -56,16 +75,29 @@ public class LCTKAnon
         }
     }
 
+    /**
+     * Accepts a String[] containing the quasi-indent list, an int k for k-anonymity,
+     * and an int maxsup for maximum allowed tuple suppression
+     *
+     * The method implements Samarati's algorithm for k-anonymity
+     *
+     * @param QI
+     * @param k
+     * @param maxsup
+     */
     public void kanon(String[] QI, int k, int maxsup)
     {
+        // save to class data members
         this.QI = QI;
         this.k = k;
         this.maxsup = maxsup;
 
-        this.setPrivateTable(QI);
-        this.setOutliers(QI, k);
-        this.createDVTable();
-        this.possibleSolutions = this.findSolution();
+        this.setPrivateTable(); // get the private table (acts as the list of all tuples)
+        this.setOutliers(QI, k); // get the outliers based on given k
+        this.createDVTable(); // build the DV matrix
+        this.possibleSolutions = this.findSolution(); // find the minimal solution(s)
+
+        // for each minimal solution, create a generalized version of the private table
         for (int i = 0; i < this.possibleSolutions.size(); i++)
         {
             System.out.println(this.getDVString(this.possibleSolutions.get(i)));
@@ -73,6 +105,20 @@ public class LCTKAnon
         }
     }
 
+    /**
+     * This method takes a distance vector solution and creates a generalized table
+     * in the database
+     *
+     * The new table in the database will be called 'result0', 'result1', etc...
+     * depending on the number of minimal solutions found
+     *
+     * Also, the result table will be a modified version of the 'student' table
+     * in that all attributes are of type VARCHAR to support expressing generalization
+     * in terms of ranges for what were originally integer values
+     *
+     * @param dv
+     * @param newTableID
+     */
     public void generalizePT(int[] dv, int newTableID)
     {
         String query = "";
@@ -80,16 +126,19 @@ public class LCTKAnon
 
         try
         {
-            this.privateTable.beforeFirst();
+            this.privateTable.beforeFirst(); // ensure we are at the beginning of the pt rs
 
-            this.copyTable(RESULT_TBL + newTableID, RESULT_TBL);
+            this.copyTable(RESULT_TBL + newTableID, RESULT_TBL); // make a copy of the result table in the db
 
+            // loop through the private table
             while (this.privateTable.next())
             {
                 String rowStr = "";
 
+                // check to see if this tuple will be suppressed
                 if (!this.suppressionList.get(newTableID).contains(this.privateTable.getString("ProductID")))
                 {
+                    // not suppressed, therefore build the qry string, generalize attributes in the QI
                     for (int i = 1; i <= this.privateTableMetaData.getColumnCount(); i++)
                     {
                         if (i < this.privateTableMetaData.getColumnCount())
@@ -122,12 +171,15 @@ public class LCTKAnon
                 }
                 else
                 {
+                    // suppressing tuple so make it evident in results by entering '--' for each attribute
                     System.out.println("Supressing: " + this.privateTable.getString("ProductID"));
                     rowStr = "'--','--','--','--','--','--'";
                 }
 
+                // final query string
                 query = "INSERT INTO " + RESULT_TBL + newTableID + " VALUES (" + rowStr + ");";
 
+                // execute the query
                 stmt = con.createStatement();
                 stmt.execute(query);
             }
@@ -138,6 +190,12 @@ public class LCTKAnon
         }
     }
 
+    /**
+     * Helper method to the index of an attribute from the QI
+     *
+     * @param str
+     * @return
+     */
     protected int inQI(String str)
     {
         for (int i = 0; i < QI.length; i++)
@@ -151,54 +209,77 @@ public class LCTKAnon
         return -1;
     }
 
+    /**
+     * This method finds the minimal solution(s)
+     *
+     * It returns an ArrayList of Distance Vectors that satisfy k-anonymity and minimality
+     *
+     * It also determines what tuples can be suppressed for a given solution
+     *
+     * @return
+     */
     public ArrayList<int[]> findSolution()
     {
+        // ArraryLists for storing varying sizes of stuff...
         ArrayList<int[]> currSolutions = new ArrayList<int[]>();
         ArrayList<int[]> prevSolutions = new ArrayList<int[]>();
         ArrayList<String> suppressTuples = new ArrayList<String>();
 
+        // Instantiate the suppression list, an ArrayList of ArrayLists...
         this.suppressionList = new ArrayList<ArrayList<String>>();
 
         String query = "";
         Statement stmt = null;
         ResultSet rs = null;
 
+        // variables to track our status
         int numOutliers = 0;
         int prevMax = this.maxHeight;
         int prevMin = 0;
-
+        // start at the max height found div 2 (integer arith so it works like floor fxn)
         int height = prevMax / 2;
         int prevHeight = 0;
         int prevSolnHeight = this.maxHeight;
 
         try
         {
+            // perform a binary search through the dv table to find minimal solutions
             while (height != prevHeight)
             {
-                query = "SELECT DISTINCT dv FROM " + this.DV_TBL + " WHERE height = " + height + ";";
+                // get the possible dv's found at height from the db
+                query = "SELECT DISTINCT dv FROM " + this.DV_TBL_COPY + " WHERE height = " + height + ";";
                 stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
                 rs = stmt.executeQuery(query);
 
+                // loop through the results
                 while (rs.next())
                 {
+                    // init outliers and suppression candidates
                     numOutliers = 0;
                     suppressTuples.clear();
                     int rowCount = 0;
 
+                    // get the first dv to try at height
                     int[] testDV = this.getDVArray(rs.getString("dv"));
 
+                    // loop through the dvtable (matrix) and count the dv's that are
+                    // <= the testDV
                     for (int i = 0; i < this.outlierCount; i++)
                     {
                         rowCount = 0;
 
                         for (int j = 0; j < this.privateTableCount; j++)
                         {
+                            // check to see if current dv <= testDV
                             if (this.dominates(this.dvtable[i][j], testDV))
                             {
+                                // if so, count it
                                 rowCount++;
                             }
                         }
 
+                        // if the row count came up less than k, this might be
+                        // a suppression candidate
                         if (rowCount < this.k)
                         {
                             numOutliers++;
@@ -206,32 +287,45 @@ public class LCTKAnon
                         }
                     }
 
+                    // if the total outliers (suppr. cand.) is less then the
+                    // max allowed suppression, then the testDV is a potential
+                    // solution, and the suppr. cand. are also tracked
                     if (numOutliers <= this.maxsup)
                     {
                         currSolutions.add(testDV);
 
+                        // check to see if we have found a new solution at a lower level
+                        // than the previous found
                         if (height < prevSolnHeight)
                         {
+                            // if so, clear out any previous suppression lists
                             this.suppressionList.clear();
+                            // add the new suppression list
                             this.suppressionList.add(new ArrayList<String>(suppressTuples));
+                            // note the new solution height
                             prevSolnHeight = height;
                         }
                         else
                         {
+                            // already found a solution at this height so don't
+                            // clear the suppression list
                             this.suppressionList.add(new ArrayList<String>(suppressTuples));
                         }
                     }
-                    else
-                    {
-                    }
                 }
 
+                // see if we found any solutions at this height
                 if (currSolutions.size() > 0)
                 {
+                    // if so store them in the previous solution list
+                    // so we can try at a new height
                     prevSolutions.clear();
                     prevSolutions.addAll(currSolutions);
                     currSolutions.clear();
 
+                    // do some math to determine the new height to search at
+                    // since we found a solution here, try at a lower height
+                    // be half-splitting
                     prevSolnHeight = height;
                     prevMax = height;
                     prevHeight = height;
@@ -239,11 +333,16 @@ public class LCTKAnon
                 }
                 else
                 {
+                    // didn't find a solution at this height so move up,
+                    // again half-splitting the distance
                     prevMin = height;
                     prevHeight = height;
                     height = (height + prevMax) / 2;
                 }
 
+                // final check for the case where we have not found any solution
+                // and no new height is calculated, this means the solution is
+                // at the top of the lattice
                 if ((height == prevHeight) && prevSolutions.isEmpty())
                 {
                     height = this.maxHeight;
@@ -255,9 +354,18 @@ public class LCTKAnon
             System.out.println("In findSolution: " + e);
         }
 
+        // return the minimal solution(s)
         return prevSolutions;
     }
 
+    /**
+     * Helper method to get a ProductID for a tuple to suppress
+     * Used for adding candidate tuples to suppress, identifying them
+     * by their unique ProductID
+     *
+     * @param rowID
+     * @return
+     */
     protected String getSuppressID(int rowID)
     {
         int row = 1;
@@ -288,6 +396,14 @@ public class LCTKAnon
         return null;
     }
 
+    /**
+     * Checks the partial ordering between two dv's and returns true if the
+     * 1st dv <= 2nd dv
+     *
+     * @param dv1
+     * @param dv2
+     * @return
+     */
     protected boolean dominates(int[] dv1, int[] dv2)
     {
         boolean dom = true;
@@ -307,6 +423,14 @@ public class LCTKAnon
         return dom;
     }
 
+    /**
+     * Helper method to copy a table, drops any instance of the first, then
+     * copies only structure from the second to the first, then inserts all
+     * the second into the first
+     *
+     * @param newTable
+     * @param oldTable
+     */
     public void copyTable(String newTable, String oldTable)
     {
         Statement stmt = null;
@@ -320,6 +444,27 @@ public class LCTKAnon
             stmt.execute(dropQry);
             stmt.execute(createQry);
             stmt.execute(selIntoQry);
+        }
+        catch (Exception e)
+        {
+            System.out.println("In copyTable: " + e);
+        }
+    }
+
+    /**
+     * Clears out the DV
+     */
+    public void refreshDVTable()
+    {
+        Statement stmt = null;
+        String dropQry = "DROP TABLE IF EXISTS " + this.DV_TBL_COPY + ";";
+        String createQry = "CREATE TABLE " + this.DV_TBL_COPY + " LIKE " + this.DV_TBL + ";";
+
+        try
+        {
+            stmt = con.createStatement();
+            stmt.execute(dropQry);
+            stmt.execute(createQry);
         }
         catch (Exception e)
         {
@@ -359,7 +504,7 @@ public class LCTKAnon
 
                     this.dvtable[i][j] = dv;
 
-                    query = "INSERT INTO " + this.DV_TBL
+                    query = "INSERT INTO " + this.DV_TBL_COPY
                             + " VALUES ('"
                             + this.outliers.getString("ProductID") + "','"
                             + this.privateTable.getString("ProductID") + "','"
@@ -534,19 +679,14 @@ public class LCTKAnon
         return height;
     }
 
-    public void setPrivateTable(String[] QI)
+    public void setPrivateTable()
     {
         Statement stmt = null;
         String query = "";
-        String quasiIdentList = this.getQIString(QI);
 
-        //SELECT quasiIdentList, count(*) as Count FROM `lctphasethree`.`student` GROUP BY quasiIdentList;
         try
         {
             stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-//            query = "SELECT ProductID ," + quasiIdentList + ", count(*) as Count "
-//                    + "FROM " + this.CPY_STUDENT_TBL + " "
-//                    + "GROUP BY " + quasiIdentList + ";";
             query = "SELECT * "
                     + "FROM " + this.CPY_STUDENT_TBL + ";";
             this.privateTable = stmt.executeQuery(query);
@@ -565,14 +705,9 @@ public class LCTKAnon
         String query = "";
         String quasiIdentList = this.getQIString(QI);
 
-        //SELECT quasiIdentList, count(*) as Count FROM `lctphasethree`.`student` GROUP BY quasiIdentList HAVING Count < 2;
         try
         {
             stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-//            query = "SELECT ProductID ," + quasiIdentList + ", count(*) as Count "
-//                    + "FROM " + this.CPY_STUDENT_TBL + " "
-//                    + "GROUP BY " + quasiIdentList + " "
-//                    + "HAVING Count < " + k + ";";
             query = "SELECT *, count(*) as Count "
                     + "FROM " + this.CPY_STUDENT_TBL + " "
                     + "GROUP BY " + quasiIdentList + " "
@@ -909,85 +1044,28 @@ public class LCTKAnon
             System.out.println();
         }
     }
-//    public static void main(String[] args)
-//    {
-//        try
-//        {
-//
-////            System.out.println("Running LCTKAnon");
-////
-////            LCTKAnon lct = new LCTKAnon();
-////
-//////            System.out.println("Generalization String Test 1234 by 0: " + lct.generalizeString("1234", 0));
-//////            System.out.println("Generalization String Test 1234 by 1: " + lct.generalizeString("1234", 1));
-//////            System.out.println("Generalization String Test 1234 by 2: " + lct.generalizeString("1234", 2));
-//////            System.out.println("Generalization String Test 1234 by 3: " + lct.generalizeString("1234", 3));
-//////            System.out.println("Generalization String Test 1234 by 4: " + lct.generalizeString("1234", 4));
-//////
-//////            System.out.println("Generalization Price Test 9 by 0: " + lct.generalizePrice(9, 0));
-//////            System.out.println("Generalization Price Test 100 by 0: " + lct.generalizePrice(100, 0));
-//////            System.out.println("Generalization Price Test 50 by 1: " + lct.generalizePrice(50, 1));
-//////            System.out.println("Generalization Price Test 11 by 1: " + lct.generalizePrice(11, 1));
-//////            System.out.println("Generalization Price Test 7 by 2: " + lct.generalizePrice(7, 2));
-//////            System.out.println("Generalization Price Test 75 by 2: " + lct.generalizePrice(75, 2));
-//////            System.out.println("Generalization Price Test 150 by 2: " + lct.generalizePrice(150, 2));
-//////            System.out.println("Generalization Price Test 35 by 3: " + lct.generalizePrice(35, 3));
-//////            System.out.println("Generalization Price Test 1150 by 3: " + lct.generalizePrice(1150, 3));
-//////            System.out.println("Generalization Price Test 9999 by 4: " + lct.generalizePrice(9999, 4));
-//////            System.out.println("Generalization Price Test 120 by 4: " + lct.generalizePrice(120, 4));
-//////            System.out.println("Generalization Price Test 1073 by 4: " + lct.generalizePrice(1073, 4));
-//////            System.out.println("Generalization Price Test 300 by 5: " + lct.generalizePrice(300, 5));
-//////
-//////            System.out.println("Generalization DeptID Test 13 by 0: " + lct.generalizeDeptID(13, 0));
-//////            System.out.println("Generalization DeptID Test 13 by 1: " + lct.generalizeDeptID(13, 1));
-//////            System.out.println("Generalization DeptID Test 13 by 2: " + lct.generalizeDeptID(13, 2));
-//////            System.out.println("Generalization DeptID Test 13 by 3: " + lct.generalizeDeptID(13, 3));
-//////            System.out.println("Generalization DeptID Test 15 by 4: " + lct.generalizeDeptID(15, 4));
-//////            System.out.println("Generalization DeptID Test 15 by 5: " + lct.generalizeDeptID(15, 5));
-//////            System.out.println("Generalization DeptID Test 40 by 5: " + lct.generalizeDeptID(40, 5));
-//////            System.out.println("Generalization DeptID Test 40 by 6: " + lct.generalizeDeptID(40, 6));
-//////
-//////            System.out.println("Generalization Weight Test 5 by 0: " + lct.generalizeWeight(5, 0));
-//////            System.out.println("Generalization Weight Test 5 by 1: " + lct.generalizeWeight(5, 1));
-//////            System.out.println("Generalization Weight Test 5 by 2: " + lct.generalizeWeight(5, 2));
-//////            System.out.println("Generalization Weight Test 0 by 1: " + lct.generalizeWeight(0, 1));
-//////            System.out.println("Generalization Weight Test 9 by 2: " + lct.generalizeWeight(9, 2));
-//////            System.out.println("Generalization Weight Test 8 by 1: " + lct.generalizeWeight(8, 1));
-//////            System.out.println("Generalization Weight Test 6 by 2: " + lct.generalizeWeight(6, 2));
-//////            System.out.println("Generalization Weight Test 7 by 2: " + lct.generalizeWeight(7, 2));
-//////
-//////            System.out.println("Generalization Years Test 1996 by 0: " + lct.generalizeYears("1996", 0));
-//////            System.out.println("Generalization Years Test 1996 by 1: " + lct.generalizeYears("1996", 1));
-//////            System.out.println("Generalization Years Test 1996 by 2: " + lct.generalizeYears("1996", 2));
-//////            System.out.println("Generalization Years Test 1996 by 0: " + lct.generalizeYears("1985", 0));
-//////            System.out.println("Generalization Years Test 1996 by 1: " + lct.generalizeYears("1985", 1));
-//////            System.out.println("Generalization Years Test 1996 by 2: " + lct.generalizeYears("1985", 2));
-//////            System.out.println("Generalization Years Test 1996 by 0: " + lct.generalizeYears("2001", 0));
-//////            System.out.println("Generalization Years Test 1996 by 1: " + lct.generalizeYears("2001", 1));
-//////            System.out.println("Generalization Years Test 1996 by 2: " + lct.generalizeYears("2001", 2));
-////
-////            lct.copyTable(lct.CPY_STUDENT_TBL, lct.STUDENT_TBL);
-////
-////            String[] QI =
-////            {
-////                "Weight", "ProductYear"
-////            };
-////
-////            System.out.println("QI List: " + lct.getQIString(QI));
-////
-////            lct.setPrivateTable(QI);
-////            lct.setOutliers(QI, 2);
-////
-////            System.out.println("\nPrinting PT\tRows: " + lct.privateTableCount + "\tColumns: " + lct.privateTableMetaData.getColumnCount() + "\n");
-////            lct.printPrivateTable(QI);
-////            System.out.println("\nPrinting Outliers\tRows: " + lct.outlierCount + "\tColumns: " + lct.outliersMetaData.getColumnCount() + "\n");
-////            lct.printOutliers(QI);
-////
-////            lct.createDVTable();
-//        }
-//        catch (Exception e)
-//        {
-//            System.out.println("In LCTKAnon main: " + e);
-//        }
-//    }
+
+    public static void main(String[] args)
+    {
+        try
+        {
+            LCTKAnon lct = new LCTKAnon();
+
+            lct.copyTable(lct.CPY_STUDENT_TBL, lct.STUDENT_TBL);
+            lct.refreshDVTable();
+
+            // "ProductID", "Price", "DeptID", "Weight", "ProductYear", "ExpireYear"
+
+            String[] QI =
+            {
+                "Price"
+            };
+
+            lct.kanon(QI, 2, 8);
+        }
+        catch (Exception e)
+        {
+            System.out.println("In LCTKAnon main: " + e);
+        }
+    }
 }

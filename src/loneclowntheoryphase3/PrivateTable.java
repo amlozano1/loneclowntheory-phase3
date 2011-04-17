@@ -1,10 +1,5 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
-
 package loneclowntheoryphase3;
-import java.util.Random;
+
 import java.sql.Connection;
 import java.sql.Statement;
 import java.sql.ResultSet;
@@ -14,8 +9,8 @@ import java.sql.SQLException;
  *
  * @author Neutron007
  */
-public class PrivateTable {
-
+public class PrivateTable
+{
     private String dbms;
     private String dbName;
     private Connection con;
@@ -52,7 +47,7 @@ public class PrivateTable {
             query = "SELECT '' AS ProductID, Price AS Price, DeptID AS DeptID, Weight AS Weight, ProductYear AS ProductYear, ExpireYear AS ExpireYear FROM LCTPhaseThree.Student ORDER BY Price, DeptID, Weight";
 
             pTable = stmt.executeQuery(query);
-            
+
             System.out.println("PRIVATE TABLE");
             System.out.println("_______________________________________________________________________________________");
             System.out.println("ProductID\tPrice\tDeptID\tWeight\tProductYear\tExpireYear");
@@ -68,11 +63,9 @@ public class PrivateTable {
             System.out.println("_______________________________________________________________________________________");
             System.out.println();
         }
-        catch(SQLException e)
+        catch (SQLException e)
         {
             System.out.println(e);
         }
     }
-
-
 }
