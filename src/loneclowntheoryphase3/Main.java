@@ -13,7 +13,6 @@ public class Main
     public static void main(String[] args)
     {
         RandomFill toFill;
-        PrivateTable privateTable;
         Connection con = null;
 
         String connStr = "jdbc:mysql://localhost:3306";
@@ -26,11 +25,9 @@ public class Main
         {
             con = DriverManager.getConnection(connStr, user, pwd);
             toFill = new RandomFill(con, dbms, dbName);
-            privateTable = new PrivateTable(con, dbms, dbName);
             toFill.emptyTable();
             toFill.fillStudentTabel(50);
             toFill.printStudentTable();
-            privateTable.createPrivateTable();
             con.close();
         }
         catch (SQLException e)

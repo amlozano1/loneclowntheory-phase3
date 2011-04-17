@@ -452,7 +452,9 @@ public class LCTKAnon
     }
 
     /**
-     * Clears out the DV
+     * Clears out the DV_TBL_COPY for another round without having to re-run the
+     * sql batch file
+     *
      */
     public void refreshDVTable()
     {
@@ -472,6 +474,13 @@ public class LCTKAnon
         }
     }
 
+    /**
+     * Creates the dvtable (both the matrix stored in class and db version)
+     * The in-class matrix version is the one used for counting, while the
+     * db version is just to find candidate dv's at a height given during the
+     * search (just provides easy lookup)
+     *
+     */
     public void createDVTable()
     {
         Statement stmt = null;
@@ -479,31 +488,41 @@ public class LCTKAnon
         int[] dv;
         int height = 0;
 
+        // instantiate the dvtable matrix
         this.dvtable = new int[this.outlierCount][this.privateTableCount][];
 
         try
         {
+            // rewind the result sets
             this.outliers.beforeFirst();
             this.privateTable.beforeFirst();
 
             int i = 0;
 
+            // loop through the outliers
             while (this.outliers.next())
             {
                 int j = 0;
 
+                // for each entry in the pt, calculate a dv between it
+                // and the current outlier
                 while (this.privateTable.next())
                 {
+                    // get the dv
                     dv = this.getDV(this.outliers, this.privateTable);
+                    // calculate its height for easy db lookup
                     height = this.getHeight(dv);
 
+                    // make a note of the max height found
                     if (height > this.maxHeight)
                     {
                         this.maxHeight = height;
                     }
 
+                    // enter the dv into the matrix
                     this.dvtable[i][j] = dv;
 
+                    // also, insert into the db with its height
                     query = "INSERT INTO " + this.DV_TBL_COPY
                             + " VALUES ('"
                             + this.outliers.getString("ProductID") + "','"
@@ -527,19 +546,30 @@ public class LCTKAnon
         }
     }
 
+    /**
+     * This method calculates the distance vector between to rows based on the
+     * QI list, returning an int[] representing the dv
+     *
+     * @param rs1
+     * @param rs2
+     * @return
+     */
     public int[] getDV(ResultSet rs1, ResultSet rs2)
     {
         int dv[];
 
         try
         {
+            // make a new dv same len as QI
             dv = new int[this.QI.length];
 
+            // for each attrib in QI, calc the distance
             for (int i = 0; i < QI.length; i++)
             {
-                dv[i] = this.getDistance(this.outliers.getString(QI[i]), this.privateTable.getString(QI[i]), QI[i]);
+                dv[i] = this.getDistance(rs1.getString(QI[i]), rs2.getString(QI[i]), QI[i]);
             }
 
+            // return the dv
             return dv;
         }
         catch (Exception e)
@@ -549,11 +579,19 @@ public class LCTKAnon
         }
     }
 
-    //calculate distance between two QI
+    /**
+     * calculate distance between two QI strings
+     *
+     * @param str1
+     * @param str2
+     * @param attrName
+     * @return
+     */
     public int getDistance(String str1, String str2, String attrName)
     {
         int distance = 0;
 
+        // call the appropriate distance fxn depending on which attrib it is
         if (attrName.equals("ProductID"))
         {
             distance = getStringDistance(str1, str2);
@@ -635,8 +673,18 @@ public class LCTKAnon
         return distance;
     }
 
+    /**
+     * Generalizes a given attrib the required number of steps using assoc.
+     * helper functions depending on the QI attrib name
+     *
+     * @param str
+     * @param attrName
+     * @param distance
+     * @return
+     */
     public String genAttr(String str, String attrName, int distance)
     {
+        // Call the appropriate generalize fxn
         if (attrName.equals("ProductID"))
         {
             return this.generalizeString(str, distance);
@@ -667,6 +715,11 @@ public class LCTKAnon
         }
     }
 
+    /**
+     * Helper method to calculate the height of a dv
+     * @param dv
+     * @return
+     */
     public int getHeight(int[] dv)
     {
         int height = 0;
@@ -679,6 +732,10 @@ public class LCTKAnon
         return height;
     }
 
+    /**
+     * Creates the private table result set
+     *
+     */
     public void setPrivateTable()
     {
         Statement stmt = null;
@@ -699,6 +756,12 @@ public class LCTKAnon
         }
     }
 
+    /**
+     * Creates the outlier result set based on the QI list and k level to anonymize to
+     *
+     * @param QI
+     * @param k
+     */
     public void setOutliers(String[] QI, int k)
     {
         Statement stmt = null;
@@ -722,6 +785,11 @@ public class LCTKAnon
         }
     }
 
+    /**
+     * Utility method to troubleshoot
+     *
+     * @param QI
+     */
     public void printPrivateTable(String[] QI)
     {
         try
@@ -746,6 +814,11 @@ public class LCTKAnon
         }
     }
 
+    /**
+     * Utility method to troubleshoot
+     *
+     * @param QI
+     */
     public void printOutliers(String[] QI)
     {
         try
@@ -770,6 +843,13 @@ public class LCTKAnon
         }
     }
 
+    /**
+     * Helper method to create a comma delimited string of outliers for
+     * use in queries
+     *
+     * @param QI
+     * @return
+     */
     protected String getQIString(String[] QI)
     {
         String quasiIdentList = "";
@@ -789,6 +869,12 @@ public class LCTKAnon
         return quasiIdentList;
     }
 
+    /**
+     * Helper method for creating a comma delimited dv string
+     *
+     * @param dv
+     * @return
+     */
     protected String getDVString(int[] dv)
     {
         String dvString = "";
@@ -808,6 +894,12 @@ public class LCTKAnon
         return dvString;
     }
 
+    /**
+     * Helper method to create a dv (int[]) from a comma separated dv string
+     *
+     * @param dvStr
+     * @return
+     */
     protected int[] getDVArray(String dvStr)
     {
         int[] result;
@@ -831,6 +923,12 @@ public class LCTKAnon
         return result;
     }
 
+    /**
+     * Count up the rows in a result set
+     *
+     * @param rs
+     * @return
+     */
     protected int countRows(ResultSet rs)
     {
         int count = 0;
@@ -1028,6 +1126,10 @@ public class LCTKAnon
         return result;
     }
 
+    /**
+     * Utility method for troubleshooting
+     *
+     */
     public void printDVTable()
     {
         for (int i = 0; i < this.dvtable.length; i++)
@@ -1045,22 +1147,36 @@ public class LCTKAnon
         }
     }
 
+    /**
+     * Main method which can be run independently, must have a filled out copy
+     * of the student table in the mysql db
+     *
+     * @param args
+     */
     public static void main(String[] args)
     {
         try
         {
+            // instantiate the class
             LCTKAnon lct = new LCTKAnon();
 
+            // copy the student table
             lct.copyTable(lct.CPY_STUDENT_TBL, lct.STUDENT_TBL);
+            // clear out the dv table copy to allow running multiple times
+            // on same student dataset
             lct.refreshDVTable();
 
+            // use these to change up your QI list entries
+            //
             // "ProductID", "Price", "DeptID", "Weight", "ProductYear", "ExpireYear"
 
+            // create a QI list
             String[] QI =
             {
-                "Price"
+                "ProductID", "Price", "DeptID", "Weight", "ProductYear", "ExpireYear"
             };
 
+            // call kanon with the QI list, k-value, and maxsup
             lct.kanon(QI, 2, 8);
         }
         catch (Exception e)
