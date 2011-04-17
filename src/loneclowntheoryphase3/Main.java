@@ -26,7 +26,7 @@ public class Main
             con = DriverManager.getConnection(connStr, user, pwd);
             toFill = new RandomFill(con, dbms, dbName);
             toFill.emptyTable();
-            toFill.fillStudentTabel(50);
+            toFill.fillStudentTabel(10);
             toFill.printStudentTable();
             con.close();
         }
