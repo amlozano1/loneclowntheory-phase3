@@ -106,12 +106,12 @@ public class Main
 
             String[] QI =
             {
-                 "ProductID","Price","DeptID","Weight","ProductYear","ExpireYear"
+                 "ProductID","Price","DeptID","Weight"
             };
 
 //            System.out.println("QI List: " + lct.getQIString(QI));
 
-            lct.kanon(QI, 2, 8);
+            lct.kanon(QI, 2, 2);
 
 //            System.out.println("\nPrinting PT\tRows: " + lct.privateTableCount + "\tColumns: " + lct.privateTableMetaData.getColumnCount() + "\n");
 //            lct.printPrivateTable(QI);
