@@ -1173,11 +1173,11 @@ public class LCTKAnon
             // create a QI list
             String[] QI =
             {
-                "ProductID", "Price", "DeptID", "Weight", "ProductYear", "ExpireYear"
+                "Price", "DeptID", "Weight"
             };
 
             // call kanon with the QI list, k-value, and maxsup
-            lct.kanon(QI, 2, 8);
+            lct.kanon(QI, 2, 5);
         }
         catch (Exception e)
         {
