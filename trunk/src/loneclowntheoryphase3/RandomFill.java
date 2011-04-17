@@ -1,9 +1,5 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
-
 package loneclowntheoryphase3;
+
 import java.util.Random;
 import java.sql.Connection;
 import java.sql.Statement;
@@ -16,7 +12,6 @@ import java.sql.SQLException;
  */
 public class RandomFill
 {
-
     private String dbms;
     private String dbName;
     private Connection con;
@@ -26,7 +21,6 @@ public class RandomFill
     private int ranWeight;
     private String ranProductYear;
     private String ranExpireYear;
-
 
     public RandomFill(Connection connArg, String dbmsArg, String dbNameArg)
     {
@@ -40,7 +34,7 @@ public class RandomFill
             Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
             stmt.execute(query);
             con.setAutoCommit(true);
-             
+
         }
         catch (SQLException e)
         {
@@ -61,22 +55,22 @@ public class RandomFill
             stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
 
 
-            for(int i = 1; i <= numberToFill; i++)
+            for (int i = 1; i <= numberToFill; i++)
             {
                 ranProductID = Integer.toString(randomGen.nextInt(9999));
-               // System.out.println("Java ProductID:" + ranProductID);
-                queryUnique = "SELECT ProductID FROM LCTPhaseThree.Student WHERE ProductID = '" + ranProductID +"'";
+                // System.out.println("Java ProductID:" + ranProductID);
+                queryUnique = "SELECT ProductID FROM LCTPhaseThree.Student WHERE ProductID = '" + ranProductID + "'";
                 ensureUnique = stmt.executeQuery(queryUnique);
 
-                if(ranProductID.length() == 1)
+                if (ranProductID.length() == 1)
                 {
                     ranProductID = "000" + ranProductID;
                 }
-                if(ranProductID.length() == 2)
+                if (ranProductID.length() == 2)
                 {
                     ranProductID = "00" + ranProductID;
                 }
-                if(ranProductID.length() == 3)
+                if (ranProductID.length() == 3)
                 {
                     ranProductID = "0" + ranProductID;
                 }
@@ -85,21 +79,21 @@ public class RandomFill
                 ensureUnique = stmt.executeQuery("SELECT ProductID AS ProductID FROM " + dbName + "." + "Student");
 
                 //Ensures that the ProductID is unique, if it is not unique, ProductID is changed untill a unique value is found.
-                while(ensureUnique.next())
+                while (ensureUnique.next())
                 {
-                    if(((ensureUnique.getString("ProductID")).equals(ranProductID)))
+                    if (((ensureUnique.getString("ProductID")).equals(ranProductID)))
                     {
                         System.out.print("ProductID " + ranProductID + " is not unique. Changing to ");
                         ranProductID = Integer.toString(randomGen.nextInt(9999));
-                        if(ranProductID.length() == 1)
+                        if (ranProductID.length() == 1)
                         {
                             ranProductID = "000" + ranProductID;
                         }
-                        if(ranProductID.length() == 2)
+                        if (ranProductID.length() == 2)
                         {
                             ranProductID = "00" + ranProductID;
                         }
-                        if(ranProductID.length() == 3)
+                        if (ranProductID.length() == 3)
                         {
                             ranProductID = "0" + ranProductID;
                         }
@@ -142,7 +136,7 @@ public class RandomFill
 
 //                System.out.println("OK");
 
-                stmt.close();
+            stmt.close();
         }
         catch (SQLException e)
         {
@@ -160,7 +154,7 @@ public class RandomFill
             stmt = con.createStatement();
             deleteQuery = "DELETE FROM Student";
             int deleteRows = stmt.executeUpdate(deleteQuery);
-            if(deleteRows > 0)
+            if (deleteRows > 0)
             {
                 System.out.println("Deleted all rows form table");
             }
@@ -173,7 +167,7 @@ public class RandomFill
         }
         catch (SQLException e)
         {
-           System.out.println(e);
+            System.out.println(e);
         }
     }
 
@@ -181,8 +175,8 @@ public class RandomFill
     {
         ResultSet result;
         Statement stmt = null;
-       // String format;
-     
+        // String format;
+
         try
         {
             stmt = con.createStatement();
@@ -208,5 +202,4 @@ public class RandomFill
             System.out.println(e);
         }
     }
-
 }
