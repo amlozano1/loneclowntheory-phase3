@@ -214,6 +214,7 @@ public class LCTKAnon
                         {
                             this.suppressionList.clear();
                             this.suppressionList.add(new ArrayList<String>(suppressTuples));
+                            prevSolnHeight = height;
                         }
                         else
                         {

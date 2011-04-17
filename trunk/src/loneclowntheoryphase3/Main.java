@@ -39,7 +39,7 @@ public class Main
             toFill = new RandomFill(con, dbms, dbName);
             privateTable = new PrivateTable(con, dbms, dbName);
             toFill.emptyTable();
-            toFill.fillStudentTabel(25);
+            toFill.fillStudentTabel(10);
             toFill.printStudentTable();
             privateTable.createPrivateTable();
 
@@ -106,12 +106,12 @@ public class Main
 
             String[] QI =
             {
-                 "ProductID"
+                 "ProductID","Price","DeptID","Weight","ProductYear","ExpireYear"
             };
 
 //            System.out.println("QI List: " + lct.getQIString(QI));
 
-            lct.kanon(QI, 2, 5);
+            lct.kanon(QI, 2, 8);
 
 //            System.out.println("\nPrinting PT\tRows: " + lct.privateTableCount + "\tColumns: " + lct.privateTableMetaData.getColumnCount() + "\n");
 //            lct.printPrivateTable(QI);
